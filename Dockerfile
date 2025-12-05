@@ -1,26 +1,22 @@
-# Use imagem base com Java 17
-FROM eclipse-temurin:17-jdk-alpine
-
-# Defina o diretório de trabalho
+# Etapa 1: build com Maven
+FROM maven:3.9.4-eclipse-temurin-17 AS build
 WORKDIR /app
 
-# Copie os arquivos Maven Wrapper e pom.xml
-COPY mvnw pom.xml ./
-COPY .mvn .mvn
-
-# Copie o código-fonte
+# Copie arquivos essenciais
+COPY pom.xml .
 COPY src src
 
-# Permissão para o Maven Wrapper
-RUN chmod +x mvnw
+# Build do projeto
+RUN mvn clean package -DskipTests
 
-# Build do projeto sem rodar os testes
-RUN ./mvnw clean package -DskipTests
+# Etapa 2: imagem final só com o JAR
+FROM eclipse-temurin:17-jdk-alpine
+WORKDIR /app
 
-# Copie o jar gerado para a imagem
-COPY target/backend-0.0.1-SNAPSHOT.jar app.jar
+# Copie o JAR gerado da etapa de build
+COPY --from=build /app/target/backend-0.0.1-SNAPSHOT.jar app.jar
 
-# Exponha a porta padrão do Spring Boot
+# Exponha porta padrão do Spring Boot
 EXPOSE 8080
 
 # Comando para rodar a aplicação
